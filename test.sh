@@ -35,4 +35,28 @@ array[9]=$( tail -$( echo "$LINES-($numberOfRecords*9)" | bc ) <<< "$DATA")
 
 shuffle
 
-echo "${array[*]}"
+# data=$(echo "${array[0]}")
+# data+=$(echo)
+# data+=$(echo "${array[1]}")
+# data+=$(echo)
+# data+=$(echo "${array[2]}")
+# data+=$(echo)
+# data+=$(echo "${array[3]}")
+# data+=$(echo)
+# data+=$(echo "${array[4]}")
+# data+=$(echo)
+# data+=$(echo "${array[5]}")
+# data+=$(echo)
+# data+=$(echo "${array[6]}")
+# data+=$(echo)
+# data+=$(echo "${array[7]}")
+# data+=$(echo)
+# data+=$(echo "${array[8]}")
+# data+=$(echo)
+# data+=$(echo "${array[9]}")
+
+# echo "$data"
+
+data=$(printf "%s\n" "${array[@]}")
+
+echo "$data"

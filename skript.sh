@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ##### Constants #####
-DEBUG=0
+DEBUG=1
 OUTPUT=output
 #####		#####
 
@@ -193,7 +193,7 @@ function loadParam()
 	  esac
 	done
 	[ $DEBUG -eq 1 ] && echo posouvam o/:  `expr ${OPTIND} - 1`
-	shift `expr ${OPTIND} - 1`
+	shifto=$(expr ${OPTIND} - 1)
 }
 
 
@@ -233,7 +233,7 @@ function finish()
 }
 # trap finish EXIT
 
-#	Fce zkopirov
+#	Fce zkopirovana ze StackOverflow
 #	This function shuffles the elements of an array in-place using the Knuth-Fisher-Yates shuffle algorithm.
 function shuffle() 
 {
@@ -268,6 +268,7 @@ function generategraph()
 	array[8]=$( head -$( echo "$numberOfRecords*9" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
 	array[9]=$( tail -$( echo "$LINES-($numberOfRecords*9)" | bc ) <<< "$DATA") 
 	shuffle
+	data=$(printf "%s\n" "${array[@]}")
 	
 	YRANGE=$(sort -n "$DATA" | sed -n '1p;$p' | paste -d: -s)
 	[[ "$Ymin" == "auto" || "$Ymin" == "min" ]] && Ymin=$(cut -d":" -f1 <<< $YRANGE)
@@ -275,6 +276,7 @@ function generategraph()
 	FMT=$TMP/%0${#LINES}d.png
 	
 	# Vygenerovat snimky animace
+	set -x
 	for ((i=1;i<=LINES;i++))
 	do
 		{
@@ -283,13 +285,14 @@ function generategraph()
 				set output "$(printf "$FMT" $i)"
 				plot [0:$LINES][$Ymin:$Ymax] '-' with lines t ''
 				PLOT
-			head -n $i "$DATA"
-		} | gnuplot &
+			echo "$data" | head -n $i
+		} | gnuplot
 	done
+	set +x
 	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video"
 
 	# Spojit snimky do videa
-	ffmpeg -i "$FMT" -- anim.mp4 >/dev/null 2>/dev/null
+	# ffmpeg -i "$FMT" -- anim.mp4 >/dev/null 2>/dev/null
 }
 
 
@@ -304,6 +307,7 @@ function generategraph()
 ##### Pomyslny main #####
 
 loadParam "$@"
+shift "$shifto"
 setDefaultVar
 loadFile "$@"
 
