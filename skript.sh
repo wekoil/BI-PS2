@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ##### Constants #####
-DEBUG=1
+DEBUG=0
 OUTPUT=output
 #####		#####
 
@@ -27,7 +27,7 @@ function warr()
 #	-t
 function setTimeFormat()
 {
-	declare -p TimeFormat 1>/dev/null 2>/dev/null && warr "TimeFormat is already set using the last one"
+	declare -p TimeFormat 1>/dev/null 2>/dev/null && err "TimeFormat is already set"
 	TimeFormat="$*"
 }
 
@@ -36,7 +36,7 @@ function setTimeFormat()
 #	-X
 function setXmax()
 {
-	declare -p Xmax 1>/dev/null 2>/dev/null && warr "Xmax is already set using the last one"
+	declare -p Xmax 1>/dev/null 2>/dev/null && err "Xmax is already set"
 	[[ "$*" == "auto" || "$*" == "max" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Xmax. Supported params are: \"auto\", \"max\" or value"
 	Xmax="$*"
 }
@@ -46,7 +46,7 @@ function setXmax()
 #	-x
 function setXmin()
 {
-	declare -p Xmin 1>/dev/null 2>/dev/null && warr "Xmin is already set using the last one"
+	declare -p Xmin 1>/dev/null 2>/dev/null && err "Xmin is already set"
 	[[ "$*" == "auto" || "$*" == "min" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Xmin. Supported params are: \"auto\", \"min\" or value"
 	Xmin="$*"
 	
@@ -57,7 +57,7 @@ function setXmin()
 #	-Y
 function setYmax()
 {
-	declare -p Ymax 1>/dev/null 2>/dev/null && warr "Ymax is already set using the last one"
+	declare -p Ymax 1>/dev/null 2>/dev/null && err "Ymax is already set"
 	[[ "$*" == "auto" || "$*" == "max" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Ymax. Supported params are: \"auto\", \"max\" or value"
 	Ymax="$*"
 }
@@ -67,7 +67,7 @@ function setYmax()
 #	-y
 function setYmin()
 {
-	declare -p Ymin 1>/dev/null 2>/dev/null && warr "Ymin is already set using the last one"
+	declare -p Ymin 1>/dev/null 2>/dev/null && err "Ymin is already set"
 	[[ "$*" == "auto" || "$*" == "min" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Ymin. Supported params are: \"auto\", \"min\" or value"
 	Ymin="$*"
 }
@@ -77,8 +77,8 @@ function setYmin()
 function setSpeed()
 {
 	echo "$*"
-	declare -p Time 1>/dev/null 2>/dev/null && warr "Param for Time is now unset. Using Speed instead" && unset Time
-	declare -p Speed 1>/dev/null 2>/dev/null && warr "Speed is already set using the last one"
+	declare -p Time 1>/dev/null 2>/dev/null && err "Cannot use param Speed while param Time is already set"
+	declare -p Speed 1>/dev/null 2>/dev/null && err "Speed is already set"
 	[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Speed. Supported is only a value"
 	Speed="$*"
 }
@@ -88,8 +88,8 @@ function setSpeed()
 #	-T
 function setTime()
 {
-	declare -p Speed 1>/dev/null 2>/dev/null && warr "Param for Speed is now unset. Using Time instead" && unset Speed
-	declare -p Time 1>/dev/null 2>/dev/null && warr "Time is already set using the last one"
+	declare -p Speed 1>/dev/null 2>/dev/null && err "Cannot use param Time while param Speed is already set"
+	declare -p Time 1>/dev/null 2>/dev/null && err "Time is already set using the last one"
 	[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Time. Supported is only a value"
 	Time="$*"
 }
@@ -99,17 +99,19 @@ function setTime()
 #	-e
 function setEffectParams()
 {
-	#	TOHLE JESTE MUSIS DODELAT!!!!!!!
-	EffectParams="$*"
+	declare -p EffectParams 1>/dev/null 2>/dev/null && EffectParams="$EffectParams:$*"
+	declare -p EffectParams 1>/dev/null 2>/dev/null || EffectParams="$*"
+		
+	
 	echo "$EffectParams" | tr ":" "\n"
 }
 
 
-#	Nastavi promennou Time
-#	-T
+#	Nastavi promennou Name
+#	-n
 function setName()
 {
-	declare -p Name 1>/dev/null 2>/dev/null && warr "Name is already set using the last one"
+	declare -p Name 1>/dev/null 2>/dev/null && err "Name is already set"
 	Name="$*"
 }
 
@@ -200,7 +202,7 @@ function loadParam()
 #	Zpracovani souboru
 function loadFile()
 {
-	TMP=$(mktemp -d) || { echo "Cannot create temporary directory" >&2; exit 1; }
+	
 	[ "$DEBUG" -eq "1" ] && echo "$*"
 	while [ $# -gt 0 ]
 	do
@@ -222,16 +224,17 @@ function setDefaultVar()
 	declare -p Ymax 1>/dev/null 2>/dev/null || Ymax="auto"
 	declare -p Ymin 1>/dev/null 2>/dev/null || Ymin="auto"
 	declare -p Speed 1>/dev/null 2>/dev/null || Speed="1"
+	declare -p Name 1>/dev/null 2>/dev/null || Name="default"
 }
 
 
 #	Uklizeci funkce, ktera po sobe vse uklidi, je zavolana na konci skriptu
 function finish()
 {
-	[ "$DEBUG" -eq "1" ] && echo "uklizim"
-	rm -rf "$TMP"
+	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
+	rm -rf "$TMP" 2>/dev/null
 }
-# trap finish EXIT
+trap finish EXIT
 
 #	Fce zkopirovana ze StackOverflow
 #	This function shuffles the elements of an array in-place using the Knuth-Fisher-Yates shuffle algorithm.
@@ -253,46 +256,71 @@ function shuffle()
 
 function generategraph()
 {
-	DATA=$1
+	TMP=$(mktemp -d) || { echo "Cannot create temporary directory" >&2; exit 1; }
+	[ "$DEBUG" -eq "1" ] && echo "Jmeno tmp adresare: $TMP"
+	
 
-	LINES=$(wc -l <"$DATA")
+		DATA=$(cat "$1")
+
+	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
+	Xmax=$(tail -1 <<< "$DATA" | cut -d":" -f1)
+	Xmin=$(head -1 <<< "$DATA" | cut -d":" -f1)
+
+	LINES=$(wc -l <<< "$DATA")
 	numberOfRecords=$( echo "$LINES/10" | bc)
 	array[0]=$( head -"$numberOfRecords" <<< "$DATA")
-	array[1]=$( head -$( echo "$numberOfRecords*2" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[2]=$( head -$( echo "$numberOfRecords*3" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[3]=$( head -$( echo "$numberOfRecords*4" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[4]=$( head -$( echo "$numberOfRecords*5" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[5]=$( head -$( echo "$numberOfRecords*6" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[6]=$( head -$( echo "$numberOfRecords*7" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[7]=$( head -$( echo "$numberOfRecords*8" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
-	array[8]=$( head -$( echo "$numberOfRecords*9" | bc ) <<<"$DATA" | tail -"$numberOfRecords")
+	array[1]=$( head -$( echo "$numberOfRecords*2" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[2]=$( head -$( echo "$numberOfRecords*3" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[3]=$( head -$( echo "$numberOfRecords*4" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[4]=$( head -$( echo "$numberOfRecords*5" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[5]=$( head -$( echo "$numberOfRecords*6" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[6]=$( head -$( echo "$numberOfRecords*7" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[7]=$( head -$( echo "$numberOfRecords*8" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
+	array[8]=$( head -$( echo "$numberOfRecords*9" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
 	array[9]=$( tail -$( echo "$LINES-($numberOfRecords*9)" | bc ) <<< "$DATA") 
 	shuffle
-	data=$(printf "%s\n" "${array[@]}")
 	
-	YRANGE=$(sort -n "$DATA" | sed -n '1p;$p' | paste -d: -s)
+	necoCoNicNeprepise=$(printf "%s\n" "${array[@]}")
+
+	
+	YRANGE=$(echo "$DATA" | awk '{print $NF}' | sort -n | sed -n '1p;$p' | paste -d: -s)
+	# echo "$YRANGE"
 	[[ "$Ymin" == "auto" || "$Ymin" == "min" ]] && Ymin=$(cut -d":" -f1 <<< $YRANGE)
 	[[ "$Ymax" == "auto" || "$Ymax" == "max" ]] && Ymax=$(cut -d":" -f2 <<< $YRANGE)
 	FMT=$TMP/%0${#LINES}d.png
 	
 	# Vygenerovat snimky animace
-	set -x
+	# set -x
+	# set -v
 	for ((i=1;i<=LINES;i++))
 	do
-		{
-			cat <<-PLOT
-				set terminal png
+		echo "set terminal png;
 				set output "$(printf "$FMT" $i)"
-				plot [0:$LINES][$Ymin:$Ymax] '-' with lines t ''
-				PLOT
-			echo "$data" | head -n $i
-		} | gnuplot
+				set format x '';
+				set timefmt "$TimeFormat"
+				set xdata time
+				plot [$Xmin:$Xmax][$Ymin:$Ymax] \
+					'<sed -n 0,$((i))p $necoCoNicNeprepise' \
+					with lines t '';
+				" | gnuplot
+		# {
+		# 	cat <<-PLOT
+		# 		set terminal png
+		# 		set output "$(printf "$FMT" $i)"
+		# 		set timefmt "%TimeFormat"
+		# 		set xdata time
+		# 		plot [$Xmin:$Xmax][$Ymin:$Ymax] '-' with lines t ''
+		# 		PLOT
+		# 	head -"$i" <<< "$necoCoNicNeprepise" | sort -n 2>/dev/null
+		# } | gnuplot
+	# }
 	done
-	set +x
+	# set +x
+	# set +v
 	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video"
 
 	# Spojit snimky do videa
-	# ffmpeg -i "$FMT" -- anim.mp4 >/dev/null 2>/dev/null
+	ffmpeg -i "$FMT" -- "$Name".mp4 >/dev/null 2>/dev/null
 }
 
 
@@ -302,7 +330,7 @@ function generategraph()
 # 	setVariable($(echo "$i" | cut -d" " -f1), $(echo "$i" | cut -d" " -f2-))
 #	"^-?[0-9]+([.][0-9])?$"
 
-#####		#####
+##########
 
 ##### Pomyslny main #####
 
