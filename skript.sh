@@ -299,6 +299,7 @@ function generategraph()
 				set format x '';
 				set timefmt "$TimeFormat"
 				set xdata time
+				set format x"%H:%M"
 				plot [$Xmin:$Xmax][$Ymin:$Ymax] \
 					'<sed -n 0,$((i))p $necoCoNicNeprepise' \
 					with lines t '';

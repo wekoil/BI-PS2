@@ -9,7 +9,7 @@ set timefmt "[%Y/%m/%d %H:%M:%S]"
  
 # na ose x bude cas (jinak cisla), format popisku na ose x
 set xdata time
-set format x"%H:%M"
+set format x "%H:%M"
  
 # popis os
 set xlabel "Cas"
