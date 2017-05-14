@@ -1,8 +1,11 @@
 #!/bin/bash
 
 ##### Constants #####
-DEBUG=0
+DEBUG=1
 OUTPUT=output
+
+# kvuli sortu, ktery bez tohoto funguje podivne
+export LC_ALL=C
 #####		#####
 
 
@@ -234,7 +237,7 @@ function finish()
 	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
 	rm -rf "$TMP" 2>/dev/null
 }
-trap finish EXIT
+# trap finish EXIT
 
 #	Fce zkopirovana ze StackOverflow
 #	This function shuffles the elements of an array in-place using the Knuth-Fisher-Yates shuffle algorithm.
@@ -263,8 +266,8 @@ function generategraph()
 		DATA=$(cat "$1")
 
 	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
-	Xmax=$(tail -1 <<< "$DATA" | cut -d":" -f1)
-	Xmin=$(head -1 <<< "$DATA" | cut -d":" -f1)
+	Xmax=$(awk '{$NF=""; print $0}' <<< "$DATA" | tail -1 | head -c -2)
+	Xmin=$(awk '{$NF=""; print $0}' <<< "$DATA" | head -1 | head -c -2)
 
 	LINES=$(wc -l <<< "$DATA")
 	numberOfRecords=$( echo "$LINES/10" | bc)
@@ -282,9 +285,8 @@ function generategraph()
 	
 	necoCoNicNeprepise=$(printf "%s\n" "${array[@]}")
 
-	
 	YRANGE=$(echo "$DATA" | awk '{print $NF}' | sort -n | sed -n '1p;$p' | paste -d: -s)
-	# echo "$YRANGE"
+	echo "$YRANGE"
 	[[ "$Ymin" == "auto" || "$Ymin" == "min" ]] && Ymin=$(cut -d":" -f1 <<< $YRANGE)
 	[[ "$Ymax" == "auto" || "$Ymax" == "max" ]] && Ymax=$(cut -d":" -f2 <<< $YRANGE)
 	FMT=$TMP/%0${#LINES}d.png
@@ -294,34 +296,29 @@ function generategraph()
 	# set -v
 	for ((i=1;i<=LINES;i++))
 	do
-		echo "set terminal png;
-				set output "$(printf "$FMT" $i)"
-				set format x '';
-				set timefmt "$TimeFormat"
-				set xdata time
-				set format x"%H:%M"
-				plot [$Xmin:$Xmax][$Ymin:$Ymax] \
-					'<sed -n 0,$((i))p $necoCoNicNeprepise' \
-					with lines t '';
-				" | gnuplot
-		# {
-		# 	cat <<-PLOT
-		# 		set terminal png
-		# 		set output "$(printf "$FMT" $i)"
-		# 		set timefmt "%TimeFormat"
-		# 		set xdata time
-		# 		plot [$Xmin:$Xmax][$Ymin:$Ymax] '-' with lines t ''
-		# 		PLOT
-		# 	head -"$i" <<< "$necoCoNicNeprepise" | sort -n 2>/dev/null
-		# } | gnuplot
-	# }
+		GP=$( cat <<-GNUPLOT
+		set terminal png
+		set output "$(printf "$FMT" $i)"
+		set timefmt "$TimeFormat"
+		set xdata time
+		set format x"%H:%M"
+		set yrange ["$Ymin":"$Ymax"]
+		set xrange ['$Xmin':'$Xmax']
+		plot '-' using 1:3 with lines t ''
+		GNUPLOT
+		)
+
+		DATA=$(printf "%s\n" "$necoCoNicNeprepise" | head -"$i" | sort)
+
+		printf "%s\n" "$GP" "$DATA" | gnuplot
+
 	done
 	# set +x
 	# set +v
 	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video"
 
 	# Spojit snimky do videa
-	ffmpeg -i "$FMT" -- "$Name".mp4 >/dev/null 2>/dev/null
+	#ffmpeg -i "$FMT" -- "$Name".mp4 >/dev/null 2>/dev/null
 }
 
 
