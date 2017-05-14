@@ -207,16 +207,18 @@ function loadFile()
 {
 	
 	[ "$DEBUG" -eq "1" ] && echo "$*"
+	DATA=""
 	while [ $# -gt 0 ]
 	do
 		[ "$1" == "--" ] && shift
  		[ -f "$1" ] || err "File: $1 does not exist"
 		[ -r "$1" ] || err "File: $1 can not be read because of permitions"
 		[ -s "$1" ] || err "File: $1 is empty"
-		generategraph "$1"
+		DATA+=$(echo ;cat "$1")
    		shift
 	done
-
+	generategraph
+	# echo "$DATA"
 }
 
 
@@ -237,7 +239,7 @@ function finish()
 	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
 	rm -rf "$TMP" 2>/dev/null
 }
-# trap finish EXIT
+trap finish EXIT
 
 #	Fce zkopirovana ze StackOverflow
 #	This function shuffles the elements of an array in-place using the Knuth-Fisher-Yates shuffle algorithm.
@@ -263,7 +265,7 @@ function generategraph()
 	[ "$DEBUG" -eq "1" ] && echo "Jmeno tmp adresare: $TMP"
 	
 
-		DATA=$(cat "$1")
+		
 
 	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
 	Xmax=$(awk '{$NF=""; print $0}' <<< "$DATA" | tail -1 | head -c -2)
@@ -318,7 +320,7 @@ function generategraph()
 	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video"
 
 	# Spojit snimky do videa
-	#ffmpeg -i "$FMT" -- "$Name".mp4 >/dev/null 2>/dev/null
+	#ffmpeg -i "$FMT" -- "$Name/anim.mp4" >/dev/null 2>/dev/null
 }
 
 
@@ -335,6 +337,7 @@ function generategraph()
 loadParam "$@"
 shift "$shifto"
 setDefaultVar
+mkdir "$Name" 2>/dev/null || err "Cannot create dir: $Name"
 loadFile "$@"
 
 # while true
