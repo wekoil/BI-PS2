@@ -1,4 +1,5 @@
 #!/bin/bash
 
-
-echo "load \"print.gp\"" | gnuplot
+max=13
+max=$(($max+1))
+echo $max

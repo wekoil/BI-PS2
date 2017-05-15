@@ -79,7 +79,7 @@ function setYmin()
 #	Nastavi promennou Speed
 function setSpeed()
 {
-	echo "$*"
+	[ "$DEBUG" -eq "1" ] && echo "speed: $*"
 	declare -p Time 1>/dev/null 2>/dev/null && err "Cannot use param Speed while param Time is already set"
 	declare -p Speed 1>/dev/null 2>/dev/null && err "Speed is already set"
 	[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Speed. Supported is only a value"
@@ -106,7 +106,7 @@ function setEffectParams()
 	declare -p EffectParams 1>/dev/null 2>/dev/null || EffectParams="$*"
 		
 	
-	echo "$EffectParams" | tr ":" "\n"
+	[ "$DEBUG" -eq "1" ] && echo "Efekty: $EffectParams" | tr ":" "\n"
 }
 
 
@@ -159,7 +159,7 @@ function loadConfigFile()
 	do
 		a=$(echo "$i" | cut -d" " -f1)
 		b=$(echo "$i" | cut -d" " -f2-)
-		echo "${a,,} $b"
+		[ "$DEBUG" -eq "1" ] && echo "nacitam z konfigu: ${a,,} $b"
 		setVariable ${a,,} $b
 
 	done
@@ -172,7 +172,7 @@ function loadConfigFile()
 #	Zpracovani prepinacu
 function loadParam()
 {
-	[ $DEBUG -eq 1 ] && echo "$*"
+	[ $DEBUG -eq 1 ] && echo "Parametry: \"$*\""
 
 	while getopts ":t:y:Y:S:T:e:f:n:x:X:F:c:l:g:Ed" opt
 	do
@@ -197,7 +197,7 @@ function loadParam()
 		\?) err "Unkown param: \"$OPTARG\"";;
 	  esac
 	done
-	[ $DEBUG -eq 1 ] && echo posouvam o/:  `expr ${OPTIND} - 1`
+	[ $DEBUG -eq 1 ] && echo posouvam o\:  `expr ${OPTIND} - 1`
 	shifto=$(expr ${OPTIND} - 1)
 }
 
@@ -205,16 +205,16 @@ function loadParam()
 #	Zpracovani souboru
 function loadFile()
 {
-	
+	[ $# -eq 1 ] || err "Please type file name"
 	[ "$DEBUG" -eq "1" ] && echo "$*"
-	DATA=""
 	while [ $# -gt 0 ]
 	do
 		[ "$1" == "--" ] && shift
  		[ -f "$1" ] || err "File: $1 does not exist"
 		[ -r "$1" ] || err "File: $1 can not be read because of permitions"
 		[ -s "$1" ] || err "File: $1 is empty"
-		DATA+=$(echo ;cat "$1")
+		declare -p DATA 1>/dev/null 2>/dev/null && DATA+=$(echo ;cat "$1")
+		declare -p DATA 1>/dev/null 2>/dev/null || DATA=$(cat "$1")
    		shift
 	done
 	generategraph
@@ -229,7 +229,7 @@ function setDefaultVar()
 	declare -p Ymax 1>/dev/null 2>/dev/null || Ymax="auto"
 	declare -p Ymin 1>/dev/null 2>/dev/null || Ymin="auto"
 	declare -p Speed 1>/dev/null 2>/dev/null || Speed="1"
-	declare -p Name 1>/dev/null 2>/dev/null || Name="default"
+	declare -p Name 1>/dev/null 2>/dev/null || Name=$(cut -d"/" -f2- <<< "$0")
 }
 
 
@@ -320,9 +320,30 @@ function generategraph()
 	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video"
 
 	# Spojit snimky do videa
-	#ffmpeg -i "$FMT" -- "$Name/anim.mp4" >/dev/null 2>/dev/null
+	ffmpeg -i "$FMT" -- "$Name/anim.mp4" >/dev/null 2>/dev/null
 }
 
+function max_item () 
+{ 
+	maximalniCislo=$(ls -a | egrep "^$1_[0-9]+$" | awk -F'_' '{print $NF}' | sort -n | tail -1)
+	[ "$DEBUG" -eq "1" ] && echo "maximalniCislo: $maximalniCislo"
+}
+
+
+function createDirectory()
+{
+	max_item $Name
+	if [ $(wc -l <<< "$maximalniCislo") -eq 0 ]
+	then
+		Name+="_1"
+	else
+		maximalniCislo=$(($maximalniCislo+1))
+		Name+="_$maximalniCislo"
+	fi
+
+	[ "$DEBUG" -eq "1" ] && echo "Jmeno adresare: $Name"
+	mkdir "$Name" 2>/dev/null || err "Cannot create dir: $Name"
+}
 
 
 #	Uschovna veci, co se mozna budou jeste hodit
@@ -337,12 +358,12 @@ function generategraph()
 loadParam "$@"
 shift "$shifto"
 setDefaultVar
-mkdir "$Name" 2>/dev/null || err "Cannot create dir: $Name"
+mkdir "$Name" 2>/dev/null || createDirectory
 loadFile "$@"
 
+
+# Nekonecny cyklus na testovani
 # while true
 # do
 # 	sleep 2
 # done
-
-	
