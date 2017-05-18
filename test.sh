@@ -1,5 +1,14 @@
 #!/bin/bash
 
-max=13
-max=$(($max+1))
-echo $max
+uzivatelska doku
+
+	navratove kody
+
+	efekty 
+
+	konfigurak
+
+skript
+
+	efekty
+

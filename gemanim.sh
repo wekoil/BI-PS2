@@ -118,15 +118,20 @@ function setFPS()
 	FPS="$*"
 }
 
+#	Funkce otestuje poradi sloupcu
+function testOrder()
+{
+	[ "$(echo "$*" cut -d"=" -f1)" == "order" ] && order=$(echo "$*" cut -d"=" -f2)
+	[ "$(echo "$order" | wc -c)" ]
+}
 
 #	Nastavi promennou EffectParams
+#	Moznosti: order="poradisloupcu":randomorder=
 #	-e
 function setEffectParams()
 {
 	declare -p EffectParams 1>/dev/null 2>/dev/null && EffectParams="$EffectParams:$*"
 	declare -p EffectParams 1>/dev/null 2>/dev/null || EffectParams="$*"
-		
-	
 	[ "$DEBUG" -eq "1" ] && echo "Efekty: $EffectParams" | tr ":" "\n"
 }
 
@@ -330,8 +335,9 @@ function finish()
 {
 	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
 	rm -rf "$TMP" 2>/dev/null
+	exit 2;
 }
-# trap finish EXIT
+trap finish EXIT
 
 #	Fce zkopirovana ze StackOverflow
 #	This function shuffles the elements of an array in-place using the Knuth-Fisher-Yates shuffle algorithm.
@@ -369,6 +375,8 @@ function generategraph()
 	array[7]=$( head -$( echo "$numberOfRecords*8" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
 	array[8]=$( head -$( echo "$numberOfRecords*9" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
 	array[9]=$( tail -$( echo "$LINES-($numberOfRecords*9)" | bc ) <<< "$DATA") 
+
+
 	shuffle
 	
 	necoCoNicNeprepise=$(printf "%s\n" "${array[@]}")
@@ -398,22 +406,22 @@ function generategraph()
 		set timefmt "$TimeFormat"
 		set xdata time
 		set yrange [$Ymin:$Ymax]
-		plot '-' using 1:"$sloupce" with lines t ''
+		plot '-' using 1:$sloupce with lines t ''
 		GNUPLOT
 		)
 
 		DATA=$(printf "%s\n" "$necoCoNicNeprepise" | head -"$(echo "$i" | cut -d"." -f1)" | sort)
 
-		printf "%s\n" "$GP" "$DATA" | gnuplot 
+		printf "%s\n" "$GP" "$DATA" | gnuplot 2>/dev/null
 		
 		i=$(echo "$i+$speed" | bc)
 		counter=$( echo "$counter+1" | bc)
 	done
 	# set +x
 	# set +v
-	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video"
+	[ "$DEBUG" -eq "1" ] && echo "Snimky jsou done, delam video z adresare: $FMT"
 	[ "$DEBUG" -eq "1" ] && echo "video: $Name/anim.mp4"
-	ffmpeg -r "$FPS" -i "$FMT" -- "$Name/anim.mp4"
+	ffmpeg -r "$FPS" -i "$FMT" -- "$Name/anim.mp4" >/dev/null 2>/dev/null
 	
 }
 

@@ -25,4 +25,5 @@ set grid
 # samotne vykresleni dat ze souboru 'sin_day_real.data',\
 # na ose x bude 1. sloupec, na ose y bude 3. sloupec (! mezera v casove znacce),
 # graf bude vykreslen carou (s legendou "sin_day_real")
+set yrange [*:*]
 plot './sinus.data' using 1:3 with line title "sin_day_real"
