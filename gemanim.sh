@@ -274,9 +274,7 @@ function testFormat()
 	for ((i=1;i<LINES;i++))
 	do
 		dataFromFile=$(head -"$i" sinus.data | tail -1 | awk '{$NF=""; print $0}')
-		set -x
-		[ "$(date -d "$(echo "$dataFromFile" | tr -d "[]")" "+[%Y/%m/%d %H:%M:%S]")" == "$dataFromFile" ] || err "Wrong format on line $i"
-		set +x
+		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")")" == "$dataFromFile" ] || err "Wrong format on line $i"
 	done
 }
 
@@ -335,7 +333,6 @@ function finish()
 {
 	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
 	rm -rf "$TMP" 2>/dev/null
-	exit 2;
 }
 trap finish EXIT
 
@@ -363,6 +360,8 @@ function generategraph()
 	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
 
 	LINES=$(wc -l <<< "$DATA")
+
+	testFormat
 	
 	numberOfRecords=$( echo "$LINES/10" | bc)
 	array[0]=$( head -"$numberOfRecords" <<< "$DATA")

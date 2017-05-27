@@ -44,19 +44,12 @@ function setTimeFormat()
 }
 
 
-#	Fce otestuje promenou Xmax nebo Xmin dle zadaneho timeformatu
-function testXLabel()
-{
-	declare -p TimeFormat 1>/dev/null 2>/dev/null || err "Cannot declare Xmax or Xmin before TimeFormat!"
-	date "+$TimeFormat" -d "$*" >/dev/null 2>/dev/null || err "Wrong format on Xmax or Xmin"
-}
-
 #	Nastavi promennou Xmax
 #	-X
 function setXmax()
 {
 	declare -p Xmax 1>/dev/null 2>/dev/null && err "Xmax is already set"
-	[[ "$*" == "auto" || "$*" == "max" ]] || testXLabel "$*"
+	[[ "$*" == "auto" || "$*" == "max" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Xmax. Supported params are: \"auto\", \"max\" or value"
 	Xmax="$*"
 }
 
@@ -66,7 +59,7 @@ function setXmax()
 function setXmin()
 {
 	declare -p Xmin 1>/dev/null 2>/dev/null && err "Xmin is already set"
-	[[ "$*" == "auto" || "$*" == "min" ]] || testXLabel "$*"
+	[[ "$*" == "auto" || "$*" == "min" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Xmin. Supported params are: \"auto\", \"min\" or value"
 	Xmin="$*"
 	
 }
@@ -159,7 +152,7 @@ function setVariable()
 	a="$1"
 	shift
 	case "$a" in
-			timeformat) setTimeFormat "$*";;
+			timeFormat) setTimeFormat "$*";;
 			xmax) Xmax="$*";;
 			xmin) Xmin="$*";;
 			ymax) setYmax "$*";;
@@ -167,12 +160,12 @@ function setVariable()
 			speed) setSpeed "$*";;
 			time) setTime "$*";;
 			fps) FPS="$*";;
-			criticalvalue) CriticalValue="$*";;
+			criticalValue) CriticalValue="$*";;
 			legend) Legend="$*";;
-			gnuplotparams) GnuplotParams="$*";;
-			effectparams) setEffectParams "$*";;
+			gnuplotParams) GnuplotParams="$*";;
+			effectParams) setEffectParams "$*";;
 			name) setName "$*";;
-			ignoreerrors) IgnoreErrors="$*";;
+			ignoreErrors) IgnoreErrors="$*";;
 			\?) warr "Pokud se tohle vypsalo, asi mas blbe konfigurak";;
 	esac
 }
@@ -281,9 +274,9 @@ function testFormat()
 	for ((i=1;i<LINES;i++))
 	do
 		dataFromFile=$(head -"$i" sinus.data | tail -1 | awk '{$NF=""; print $0}')
-		[ "$DEBUG" -eq "1" ] && echo "$dataFromFile"
-		[ "$DEBUG" -eq "1" ] && echo "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")")"
-		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")") " == "$dataFromFile" ] || err "Wrong format on line $i"
+		set -x
+		[ "$(date -d "$(echo "$dataFromFile" | tr -d "[]")" "+[%Y/%m/%d %H:%M:%S]")" == "$dataFromFile" ] || err "Wrong format on line $i"
+		set +x
 	done
 }
 
@@ -342,6 +335,7 @@ function finish()
 {
 	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
 	rm -rf "$TMP" 2>/dev/null
+	exit 2;
 }
 trap finish EXIT
 
@@ -369,8 +363,6 @@ function generategraph()
 	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
 
 	LINES=$(wc -l <<< "$DATA")
-
-	testFormat
 	
 	numberOfRecords=$( echo "$LINES/10" | bc)
 	array[0]=$( head -"$numberOfRecords" <<< "$DATA")
