@@ -220,8 +220,8 @@ function loadParam()
 		f) loadConfigFile "${OPTARG}"; [ "$DEBUG" -eq "1" ] && echo "Configuration file: $OPTARG has been sucesfully loaded";;
 		n) setName "${OPTARG}";;
 ##### OPTIONAL PARAMS TODO
-		X) warr "Optional param: X has not been implemented";;
-		x) warr "Optional param: x has not been implemented";;
+		X) setXmax "${OPTARG}";;
+		x) setXmin "${OPTARG}";;
 		F) setFPS "${OPTARG}";;
 		c) warr "Optional param: c has not been implemented";;
 		l) warr "Optional param: l has not been implemented";;
@@ -280,7 +280,7 @@ function testFormat()
 {
 	for ((i=1;i<LINES;i++))
 	do
-		dataFromFile=$(head -"$i" sinus.data | tail -1 | awk '{$NF=""; print $0}')
+		dataFromFile=$(head -"$i" sinus.data | tail -1 | awk '{$NF=""; print $0}' | tr -d "[]")
 		[ "$DEBUG" -eq "1" ] && echo "$dataFromFile"
 		[ "$DEBUG" -eq "1" ] && echo "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")")"
 		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")") " == "$dataFromFile" ] || err "Wrong format on line $i"
@@ -330,7 +330,7 @@ function setdefaultFpsTimeSpeed()
 function setDefaultVar()
 {
 	
-	declare -p TimeFormat 1>/dev/null 2>/dev/null || TimeFormat="[%Y-%m-%d %H:%M:%S]"
+	declare -p TimeFormat 1>/dev/null 2>/dev/null || TimeFormat="%Y-%m-%d %H:%M:%S"
 	declare -p Ymax 1>/dev/null 2>/dev/null || Ymax="auto"
 	declare -p Ymin 1>/dev/null 2>/dev/null || Ymin="auto"
 	declare -p Name 1>/dev/null 2>/dev/null || Name=$(cut -d"/" -f2- <<< "$0")
