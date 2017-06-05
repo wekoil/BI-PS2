@@ -1,0 +1,25 @@
+.\" DO NOT MODIFY THIS FILE! 
+.TH genanim.sh "1" "May 2017"  "User Commands"
+.SH NAME
+genanim.sh \- generate animation from given data files
+.SH SYNOPSIS
+.B ./genanim.sh
+[\fI\,OPTIONS\/\fR]... [\fI\,FILE\/\fR]...
+.SH DESCRIPTION
+.\" Add any additional description here
+.PP
+On the start of script there are constants that are needed for smooth run of the script.
+.PP
+The script is distributed into functions some are simple and some others are complicated. The simple functions will not be commented here.
+.PP
+Function \fB\err\fR prints all given arguments and ends the script with return value 1.
+.PP
+Function \fB\warr\fR prints all given arguments and continues in executing code.
+.PP
+After that follows some functions which sets argument given by user and test them.
+.PP
+After that follows some functions which sets argument given by user and test them.
+
+.SH AUTHOR
+Written by Jan Michal.
+

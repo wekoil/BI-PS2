@@ -1,5 +1,5 @@
 # nastaveni typu vystupu (terminal = png), volitelne font a velikost
-set terminal png
+set terminal png font "/usr/openwin/lib/X11/fonts/TrueType/Arial-Bold.ttf" 8
  
 # vystupni soubor
 set output "sin_day_real.png"
@@ -9,7 +9,7 @@ set timefmt "[%Y/%m/%d %H:%M:%S]"
  
 # na ose x bude cas (jinak cisla), format popisku na ose x
 set xdata time
-set format x "%H:%M"
+set format x"%H:%M"
  
 # popis os
 set xlabel "Cas"
@@ -21,9 +21,14 @@ set title "sin in real"
  
 # zobrazeni mrizky grafu
 set grid
+
+set grid xtics ytics
+
+set pointsize 10
+set tics textcolor rgbcolor "blue"
+set nastav tam nejaky hovna
  
 # samotne vykresleni dat ze souboru 'sin_day_real.data',\
 # na ose x bude 1. sloupec, na ose y bude 3. sloupec (! mezera v casove znacce),
 # graf bude vykreslen carou (s legendou "sin_day_real")
-set yrange [*:*]
 plot './sinus.data' using 1:3 with line title "sin_day_real"

@@ -2,7 +2,7 @@
 
 ##### Constants #####
 DEBUG=0
-OUTPUT=output
+IGNOREERRORS="false"
 
 # kvuli sortu, ktery bez tohoto funguje podivne
 export LC_ALL=C
@@ -37,10 +37,10 @@ function testTimeFormat()
 #	-t
 function setTimeFormat()
 {
-
-	declare -p TimeFormat 1>/dev/null 2>/dev/null && err "TimeFormat is already set"
+	declare -p TimeFormat 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "TimeFormat is already set, using last one"
+	declare -p TimeFormat 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "TimeFormat is already set"
 	TimeFormat="$*"
-	# testTimeFormat
+	testTimeFormat
 }
 
 
@@ -133,11 +133,30 @@ function setLegend()
 	Legend="$*"
 }
 
+
+# 	Funkce nastavi promenou GnuplotParams
+#	 -g
+function setGnuplotParams()
+{
+	echo "set $*" | gnuplot >/dev/null 2>/dev/null || err "Wrong Gnuplot Params"
+	gnuplotParams+=$(echo "set $*; ")
+}
+
+
+# 	Funkce nastavi promenou IGNOREERRORS
+#	 -E
+function setIgnoreErrors()
+{
+	[[ "$*" == "true" || "$*" == "false" ]] || err "Wrong IgnoreErrors param"
+	IGNOREERRORS="$*"
+}
+
+
 #	Funkce nastavi promennou criticalValues
 #	-c
 function setCriticalValues()
 {
-	echo nic
+	echo 
 }
 
 #	Funkce otestuje poradi sloupcu
@@ -188,10 +207,10 @@ function setVariable()
 			fps) setFPS "$*";;
 			criticalvalue) CriticalValue="$*";;
 			legend) setLegend "$*";;
-			gnuplotparams) GnuplotParams="$*";;
+			gnuplotparams) setGnuplotParams "$*";;
 			effectparams) setEffectParams "$*";;
 			name) setName "$*";;
-			ignoreerrors) IgnoreErrors="$*";;
+			ignoreerrors) setIgnoreErrors "$*";;
 			\?) warr "Pokud se tohle vypsalo, asi mas blbe konfigurak";;
 	esac
 }
@@ -244,8 +263,8 @@ function loadParam()
 		F) setFPS "${OPTARG}";;
 		c) warr "Optional param: c has not been implemented";;
 		l) setLegend "${OPTARG}";;
-		g) warr "Optional param: g has not been implemented";;
-		E) warr "Optional param: E has not been implemented";;
+		g) setGnuplotParams "${OPTARG}";;
+		E) setIgnoreErrors "true";;
 		\?) err "Unkown param: \"$OPTARG\"";;
 	  esac
 	done
@@ -352,6 +371,8 @@ function setDefaultVar()
 	declare -p TimeFormat 1>/dev/null 2>/dev/null || TimeFormat="%Y-%m-%d %H:%M:%S"
 	declare -p Ymax 1>/dev/null 2>/dev/null || Ymax="auto"
 	declare -p Ymin 1>/dev/null 2>/dev/null || Ymin="auto"
+	declare -p Ymax 1>/dev/null 2>/dev/null || Xmax="max"
+	declare -p Ymin 1>/dev/null 2>/dev/null || Xmin="min"
 	declare -p Name 1>/dev/null 2>/dev/null || Name=$(cut -d"/" -f2- <<< "$0")
 	declare -p Legend 1>/dev/null 2>/dev/null || Legend=""
 }
@@ -381,7 +402,7 @@ function shuffle()
       rand=$(( rand % (i+1) ))
       tmp=${array[i]} array[i]=${array[rand]} array[rand]=$tmp
    done
-   necoCoNicNeprepise=$(printf "%s\n" "${array[@]}")
+   necoCoNicNeprepise2=$(printf "%s\n" "${array[@]}")
 }
 
 
@@ -393,7 +414,7 @@ function setOrder()
 		k="$(cut -c"$((i+1))" <<< "$order")"
 		array2["$i"]="${array["$k"]}"
 	done
-	necoCoNicNeprepise=$(printf "%s\n" "${array2[@]}")
+	necoCoNicNeprepise2=$(printf "%s\n" "${array2[@]}")
 }
 
 
@@ -401,6 +422,10 @@ function generategraph()
 {
 	
 	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
+	[ "$Xmin" == "min" ] && Xmin=$(cut -d":" -f1 <<< $XRANGE)
+	[ "$Xmax" == "max" ] && Xmax=$(cut -d":" -f2 <<< $XRANGE)
+	[ "$Xmin" == "auto" ] && Xmin="*"
+	[ "$Xmax" == "auto" ] && Xmax="*"
 
 	LINES=$(wc -l <<< "$DATA")
 
@@ -425,7 +450,7 @@ function generategraph()
 		shuffle
 	fi
 
-
+	necoCoNicNeprepise=$(sort -k1,1n <<< "$necoCoNicNeprepise2")
 	
 
 	YRANGE=$(echo "$DATA" | awk '{print $NF}' | sort -n | sed -n '1p;$p' | paste -d: -s)
@@ -452,6 +477,7 @@ function generategraph()
 		set output "$(printf "$FMT" "$counter")"
 		set timefmt "$TimeFormat"
 		set xdata time
+		set xrange [$Xmin:$Xmax]
 		set yrange [$Ymin:$Ymax]
 		set title "$Legend"
 		plot '-' using 1:$sloupce with lines t ''
@@ -460,7 +486,7 @@ function generategraph()
 
 		DATA=$(printf "%s\n" "$necoCoNicNeprepise" | head -"$(echo "$i" | cut -d"." -f1)" | sort)
 
-		printf "%s\n" "$GP" "$DATA" | gnuplot
+		printf "%s\n" "$gnuplotParams" "$GP" "$DATA" | gnuplot
 		
 		i=$(echo "$i+$speed" | bc)
 		counter=$( echo "$counter+1" | bc)
@@ -507,18 +533,4 @@ function main()
 	exit 0
 }
 
-#	Uschovna veci, co se mozna budou jeste hodit
-
-# 	setVariable($(echo "$i" | cut -d" " -f1), $(echo "$i" | cut -d" " -f2-))
-#	"^-?[0-9]+([.][0-9])?$"
-
-
 main "$@"
-
-
-
-# Nekonecny cyklus na testovani
-# while true
-# do
-# 	sleep 2
-# done
