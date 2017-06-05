@@ -125,20 +125,39 @@ function setFPS()
 	FPS="$*"
 }
 
+#	Funkce nastavi promennou legend
+#	-l
+function setLegend()
+{
+	declare -p Legend 1>/dev/null 2>/dev/null && err "Legend is already set"
+	Legend="$*"
+}
+
+#	Funkce nastavi promennou criticalValues
+#	-c
+function setCriticalValues()
+{
+	echo nic
+}
+
 #	Funkce otestuje poradi sloupcu
 function testOrder()
 {
-	[ "$(echo "$*" cut -d"=" -f1)" == "order" ] && order=$(echo "$*" cut -d"=" -f2)
-	[ "$(echo "$order" | wc -c)" ]
+	for i in {0..9}
+	do
+ 		[ "$(tr -d -c "$i" <<< "$*" | wc -c)" == "1" ] || err "$* is not in right order"
+ 	done
+ 	order="$*"
 }
 
 #	Nastavi promennou EffectParams
-#	Moznosti: order="poradisloupcu":randomorder=
+#	Moznosti: order="poradisloupcu"
 #	-e
 function setEffectParams()
 {
 	declare -p EffectParams 1>/dev/null 2>/dev/null && EffectParams="$EffectParams:$*"
 	declare -p EffectParams 1>/dev/null 2>/dev/null || EffectParams="$*"
+	[ "$(echo "$EffectParams" | cut -d ":" -f1 | cut -d"=" -f1)" == "order" ]  && testOrder "$(echo "$EffectParams" | cut -d ":" -f1 | cut -d"=" -f2 )"
 	[ "$DEBUG" -eq "1" ] && echo "Efekty: $EffectParams" | tr ":" "\n"
 }
 
@@ -160,15 +179,15 @@ function setVariable()
 	shift
 	case "$a" in
 			timeformat) setTimeFormat "$*";;
-			xmax) Xmax="$*";;
-			xmin) Xmin="$*";;
+			xmax) setXmax "$*";;
+			xmin) setXmin "$*";;
 			ymax) setYmax "$*";;
 			ymin) setYmin "$*";;
 			speed) setSpeed "$*";;
 			time) setTime "$*";;
-			fps) FPS="$*";;
+			fps) setFPS "$*";;
 			criticalvalue) CriticalValue="$*";;
-			legend) Legend="$*";;
+			legend) setLegend "$*";;
 			gnuplotparams) GnuplotParams="$*";;
 			effectparams) setEffectParams "$*";;
 			name) setName "$*";;
@@ -224,7 +243,7 @@ function loadParam()
 		x) setXmin "${OPTARG}";;
 		F) setFPS "${OPTARG}";;
 		c) warr "Optional param: c has not been implemented";;
-		l) warr "Optional param: l has not been implemented";;
+		l) setLegend "${OPTARG}";;
 		g) warr "Optional param: g has not been implemented";;
 		E) warr "Optional param: E has not been implemented";;
 		\?) err "Unkown param: \"$OPTARG\"";;
@@ -283,7 +302,7 @@ function testFormat()
 		dataFromFile=$(head -"$i" sinus.data | tail -1 | awk '{$NF=""; print $0}' | tr -d "[]")
 		[ "$DEBUG" -eq "1" ] && echo "$dataFromFile"
 		[ "$DEBUG" -eq "1" ] && echo "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")")"
-		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")") " == "$dataFromFile" ] || err "Wrong format on line $i"
+		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")" | tr -d "[]") " == "$dataFromFile" ] || err "Wrong format on line $i"
 	done
 }
 
@@ -334,6 +353,7 @@ function setDefaultVar()
 	declare -p Ymax 1>/dev/null 2>/dev/null || Ymax="auto"
 	declare -p Ymin 1>/dev/null 2>/dev/null || Ymin="auto"
 	declare -p Name 1>/dev/null 2>/dev/null || Name=$(cut -d"/" -f2- <<< "$0")
+	declare -p Legend 1>/dev/null 2>/dev/null || Legend=""
 }
 
 
@@ -343,7 +363,7 @@ function finish()
 	[ "$DEBUG" -eq "1" ] && echo "uklizim" 2>/dev/null
 	rm -rf "$TMP" 2>/dev/null
 }
-trap finish EXIT
+
 
 #	Fce zkopirovana ze StackOverflow
 #	This function shuffles the elements of an array in-place using the Knuth-Fisher-Yates shuffle algorithm.
@@ -361,7 +381,21 @@ function shuffle()
       rand=$(( rand % (i+1) ))
       tmp=${array[i]} array[i]=${array[rand]} array[rand]=$tmp
    done
+   necoCoNicNeprepise=$(printf "%s\n" "${array[@]}")
 }
+
+
+#	Funkce namicha pole dle poradi zadanym uzivatelem
+function setOrder()
+{
+	for i in {0..9}
+	do
+		k="$(cut -c"$((i+1))" <<< "$order")"
+		array2["$i"]="${array["$k"]}"
+	done
+	necoCoNicNeprepise=$(printf "%s\n" "${array2[@]}")
+}
+
 
 function generategraph()
 {
@@ -384,10 +418,15 @@ function generategraph()
 	array[8]=$( head -$( echo "$numberOfRecords*9" | bc ) <<< "$DATA" | tail -"$numberOfRecords")
 	array[9]=$( tail -$( echo "$LINES-($numberOfRecords*9)" | bc ) <<< "$DATA") 
 
+	if [ "$order" != "" ]
+	then
+		setOrder "$order"
+	else
+		shuffle
+	fi
 
-	shuffle
+
 	
-	necoCoNicNeprepise=$(printf "%s\n" "${array[@]}")
 
 	YRANGE=$(echo "$DATA" | awk '{print $NF}' | sort -n | sed -n '1p;$p' | paste -d: -s)
 	[ "$DEBUG" -eq "1" ] && echo "Yrange: $YRANGE"
@@ -414,13 +453,14 @@ function generategraph()
 		set timefmt "$TimeFormat"
 		set xdata time
 		set yrange [$Ymin:$Ymax]
+		set title "$Legend"
 		plot '-' using 1:$sloupce with lines t ''
 		GNUPLOT
 		)
 
 		DATA=$(printf "%s\n" "$necoCoNicNeprepise" | head -"$(echo "$i" | cut -d"." -f1)" | sort)
 
-		printf "%s\n" "$GP" "$DATA" | gnuplot 2>/dev/null
+		printf "%s\n" "$GP" "$DATA" | gnuplot
 		
 		i=$(echo "$i+$speed" | bc)
 		counter=$( echo "$counter+1" | bc)
@@ -456,21 +496,26 @@ function createDirectory()
 }
 
 
+function main()
+{
+	trap finish EXIT
+	loadParam "$@"
+	shift "$shifto"
+	setDefaultVar
+	mkdir "$Name" 2>/dev/null || createDirectory
+	loadFile "$@"
+	exit 0
+}
+
 #	Uschovna veci, co se mozna budou jeste hodit
 
 # 	setVariable($(echo "$i" | cut -d" " -f1), $(echo "$i" | cut -d" " -f2-))
 #	"^-?[0-9]+([.][0-9])?$"
 
-##########
 
-##### Pomyslny main #####
+main "$@"
 
-loadParam "$@"
-shift "$shifto"
-setDefaultVar
-mkdir "$Name" 2>/dev/null || createDirectory
-loadFile "$@"
-exit 0
+
 
 # Nekonecny cyklus na testovani
 # while true
