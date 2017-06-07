@@ -3,7 +3,7 @@
 ##### Constants #####
 DEBUG=0
 IGNOREERRORS="false"
-
+TURNOFFTEST=0
 # kvuli sortu, ktery bez tohoto funguje podivne
 export LC_ALL=C
 #####		#####
@@ -53,7 +53,7 @@ function setTimeFormat()
 	declare -p TimeFormat 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "TimeFormat is already set"
 	lastTimeFormat="$TimeFormat"
 	TimeFormat="$*"
-	testTimeFormat
+	[ "$TURNOFFTEST" == "1" ] || testTimeFormat
 }
 
 
@@ -313,9 +313,10 @@ function loadParam()
 {
 	[ $DEBUG -eq 1 ] && echo "Parametry: \"$*\""
 
-	while getopts ":t:y:Y:S:T:e:f:n:x:X:F:c:l:g:Ed" opt
+	while getopts ":t:y:Y:S:T:e:f:n:x:X:F:c:l:g:Edo" opt
 	do
 	  case $opt in
+	  	o) TURNOFFTEST=1;;
 		t) setTimeFormat "${OPTARG}";;
 		d) DEBUG=1;;
 	 	y) setYmin "${OPTARG}";;
@@ -386,10 +387,48 @@ function testFormat()
 {
 	for ((i=1;i<LINES;i++))
 	do
-		dataFromFile=$(head -"$i" <<< "$DATA" | tail -1 | awk '{$NF=""; print $0}' | tr -d "[]")
+		dataFromFile=$(head -"$i" <<< "$DATA" | tail -1 | awk '{$NF=""; print $0}')
+		testDataFromFile=$(tr -dc "0123456789" <<< "$dataFromFile")
+		[[ "$TimeFormat" =~ ^.?%y ]] && testDataFromFile=$(echo "20$testDataFromFile")
+
+		if [[ "$TimeFormat" =~ ^.?%[Yy].%m ]] 
+		then
+			testDataFromFile=$(cut -c1-4 <<< $testDataFromFile | tr -d "\n"; echo -n "/"; cut -c5- <<< $testDataFromFile)
+		else
+			testDataFromFile+=$( echo "/01")
+		fi
+
+		if [[ "$TimeFormat" =~ ^.?%[Yy].%m.%d ]] 
+		then
+			testDataFromFile=$(cut -c1-7 <<< $testDataFromFile | tr -d "\n"; echo -n "/"; cut -c8- <<< $testDataFromFile)
+		else
+			testDataFromFile+=$( echo "/01")
+		fi
+
+		if [[ "$TimeFormat" =~ ^.?%[Yy].%m.%d[\ T]%H ]] 
+		then
+			testDataFromFile=$(cut -c1-10 <<< $testDataFromFile | tr -d "\n"; cut -c9,10 <<< "$TimeFormat" | tr -dc "\ T"; cut -c11- <<< $testDataFromFile)
+		else
+			testDataFromFile+=$( echo " 00")
+		fi
+
+		if [[ "$TimeFormat" =~ ^.?%[Yy].%m.%d.%H.%M ]] 
+		then
+			testDataFromFile=$(cut -c1-13 <<< $testDataFromFile | tr -d "\n"; echo -n ":"; cut -c14- <<< $testDataFromFile)
+		else
+			testDataFromFile+=$( echo ":00")
+		fi
+
+		if [[ "$TimeFormat" =~ ^.?%[Yy].%m.%d.%H.%M.%S ]] 
+		then
+			testDataFromFile=$(cut -c1-16 <<< $testDataFromFile | tr -d "\n"; echo -n ":"; cut -c17- <<< $testDataFromFile)
+		else
+			testDataFromFile+=$( echo ":00")
+		fi
+
 		[ "$DEBUG" -eq "1" ] && echo "$dataFromFile"
 		[ "$DEBUG" -eq "1" ] && echo "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")")"
-		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")" | tr -d "[]") " == "$dataFromFile" ] || err "Wrong format on line $i"
+		[ "$(date "+$TimeFormat" -d "$testDataFromFile" ) " == "$dataFromFile" ] || err "Wrong format on line $i"
 	done
 }
 
@@ -499,7 +538,7 @@ function generategraph()
 
 	[ "$LINES" -lt "10" ] && err "Not enought data, need at least 10 lines"
 
-	testFormat
+	[ "$TURNOFFTEST" == "1" ] || testFormat
 	
 	numberOfRecords=$( echo "$LINES/10" | bc)
 	array[0]=$( head -"$numberOfRecords" <<< "$DATA")

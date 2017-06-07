@@ -28,7 +28,7 @@ echo "" >&2
 
 soubor=$(mktemp -p . XXXX)
 echo "Tester: vytvarim soubor: $soubor"
-echo "Test 5: Prazdny konfigurak" >&2
+echo "Test 5: Prazdny datovy soubor" >&2
 ./"$FILE" -- "$soubor" || echo "OK" >&2 
 echo "" >&2
 
@@ -49,6 +49,7 @@ echo "Test 8: Spusteni bez parametru" >&2
 echo "" >&2
 
 echo "Test 9: Velky test TimeFormatu" >&2
+echo "Spatny timeformat" >&2
 ./"$FILE" -t "[%y/%m/%d %H:%M%S]" || echo "OK" >&2 
 ./"$FILE" -t "[%y/%m/%d %H%M:%S]" || echo "OK" >&2 
 ./"$FILE" -t "[%y/%m/%d%H:%M:%S]" || echo "OK" >&2 
@@ -149,12 +150,13 @@ echo "Test 19: Test Spravny konfiguracni soubor" >&2
 ./"$FILE" -f "$TESTCONFIG" "$TESTINPUT" && echo "OK" >&2 
 echo "" >&2
 
-echo "Test 20: Test Ignorovani erroru" >&2
+echo "Test 20: Test Ignorovani erroru s TimeFormatem" >&2
 echo "Spatny a dobry timeformat" >&2
 ./"$FILE" -E -t "[%Y/%m/%d%H:%M:%S]" -t "[%Y/%m/%d %H:%M:%S]" "$TESTINPUT" && echo "OK" >&2 
 echo "Dobry a spatny timeformat" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -t "[%Y/%m/%d%H:%M:%S]" "$TESTINPUT" && echo "OK" >&2 
 
+echo "Test 21: Test Ignorovani erroru s Ymax" >&2
 echo "Spatny ymax" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -Y "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 echo "Dvakrat ymax" >&2
@@ -162,6 +164,7 @@ echo "Dvakrat ymax" >&2
 echo "Dobry a spatny ymax" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -Y "max" -Y "nejaka blbost" "$TESTINPUT" && echo "OK" >&2 
 
+echo "Test 22: Test Ignorovani erroru s Ymin" >&2
 echo "Spatny ymin" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -y "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 echo "Dvakrat ymin" >&2
@@ -169,6 +172,7 @@ echo "Dvakrat ymin" >&2
 echo "Dobry a spatny ymin" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -y "min" -y "nejaka blbost" "$TESTINPUT" && echo "OK" >&2 
 
+echo "Test 23: Test Ignorovani erroru se Speed" >&2
 echo "Spatny speed" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -S "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 echo "Dvakrat speed" >&2
@@ -176,6 +180,7 @@ echo "Dvakrat speed" >&2
 echo "Dobry a spatny speed" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -S "2" -S "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 
+echo "Test 24: Test Ignorovani erroru s Time" >&2
 echo "Spatny Time" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -T "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 echo "Dvakrat Time" >&2
@@ -183,6 +188,7 @@ echo "Dvakrat Time" >&2
 echo "Dobry a spatny Time" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -T "5" -T "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 
+echo "Test 25: Test Ignorovani erroru s FPS" >&2
 echo "Spatny FPS" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -F "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 echo "Dvakrat FPS" >&2
@@ -190,13 +196,16 @@ echo "Dvakrat FPS" >&2
 echo "Dobry a spatny FPS" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -F "5" -F "nejaka blbost" "$TESTINPUT" && echo "OK" >&2
 
+echo "Test 26: Test Ignorovani erroru s Legendou" >&2
 echo "Dvakrat legenda" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -l "legenda" -l "nova legenda" "$TESTINPUT" && echo "OK" >&2 
 
+echo "Test 27: Test Ignorovani erroru s Name" >&2
 echo "Dvakrat name" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -n "slozka" -n "nova slozka" "$TESTINPUT" && echo "OK" >&2 
 echo "" >&2
 
+echo "Test 28: Test Ignorovani erroru s Time, Speed a FPS" >&2
 echo "Nastaven speed time a fps" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -S "10" -T "10" -F "10" "$TESTINPUT" && echo "OK" >&2 
 echo "" >&2
@@ -209,10 +218,14 @@ echo "Nastaven speed fps a time" >&2
 ./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -S "10" -F "10" -T "10" "$TESTINPUT" && echo "OK" >&2 
 echo "" >&2
 
-# echo "Test 8: Stazeni dat z webu" >&2
-# ./"$FILE" -T 10 -S 2 -t "[%H:%M:%S]" https://users.fit.cvut.cz/~barinkl/data2 && echo "OK" >&2 
-# echo "" >&2
+echo "Test 29: Stazeni dat z webu" >&2
+./"$FILE" -o -t "[%H:%M:%S]" https://users.fit.cvut.cz/~barinkl/data2 && echo "OK" >&2 
+echo "" >&2
 
-# echo "Test 9: Neexistujici datovy soubor" >&2
-# ./"$FILE" -T 10 -S 2 -t "[%Y/%m/%d %H:%M:%S]" sinus.data && echo "OK" >&2 
-# echo "" >&2
+echo "Test 30: Vsechny prepinace" >&2
+./"$FILE" -E -t "[%Y/%m/%d %H:%M:%S]" -y "min" -Y "max" -S "2" -F "5" -T "20" -l "legenda" -n "zkouska" -g "grid" -e "order=9876543210" sinus.data && echo "OK" >&2 
+echo "" >&2
+
+echo "Test 31: Jiny timeformat - pouze rok" >&2
+./"$FILE" -t "%Y" jenrok.data && echo "OK" >&2 
+echo "" >&2
