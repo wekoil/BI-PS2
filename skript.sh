@@ -29,8 +29,20 @@ function warr()
 #	Funkce zkontroluje zda he spravne zadany timeformat a pripadne vyhodi error
 function testTimeFormat()
 {
-	echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d%H%M%S$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d%H%M$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d%H$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]$" >/dev/null 2>/dev/null || err "Wrong TimeFormat"
-	echo "$TimeFormat" | cut -d"%" -f8- | grep "." >/dev/null 2>/dev/null && err "Wrong TimeFormat"
+	# echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d%H%M%S$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d%H%M$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d%H$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m%d$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]%m$" >/dev/null 2>/dev/null || echo "$TimeFormat" | tr -dc "%YymdHMS" | grep "^%[yY]$" >/dev/null 2>/dev/null || err "Wrong TimeFormat"
+	# echo "$TimeFormat" | cut -d"%" -f8- | grep "." >/dev/null 2>/dev/null && err "Wrong TimeFormat"
+	if [ "$IGNOREERRORS" == "true" ] 
+	then
+		if [[ "$TimeFormat" =~ ^\[?%[yY](.%m(.%d([\ T]%H(.%M(.%S)?)?)?)?)?\]?$ || "$TimeFormat" =~ ^\(?%[yY](.%m(.%d([\ T]%H(.%M(.%S)?)?)?)?)?\)?$ || "$TimeFormat" =~ ^\{?%[yY](.%m(.%d([\ T]%H(.%M(.%S)?)?)?)?)?\}?$ ]] 
+		then
+			echo >/dev/null
+		else
+			warr "Wrong TimeFormat, using last option or default"
+			TimeFormat="$lastTimeFormat"
+		fi
+	else
+		[[ "$TimeFormat" =~ ^\[?%[yY](.%m(.%d([\ T]%H(.%M(.%S)?)?)?)?)?\]?$ || "$TimeFormat" =~ ^\(?%[yY](.%m(.%d([\ T]%H(.%M(.%S)?)?)?)?)?\)?$ || "$TimeFormat" =~ ^\{?%[yY](.%m(.%d([\ T]%H(.%M(.%S)?)?)?)?)?\}?$ ]] || err "Wrong TimeFormat"
+	fi
 }
 
 #	Nastavi promennou TimeFormat
@@ -39,6 +51,7 @@ function setTimeFormat()
 {
 	declare -p TimeFormat 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "TimeFormat is already set, using last one"
 	declare -p TimeFormat 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "TimeFormat is already set"
+	lastTimeFormat="$TimeFormat"
 	TimeFormat="$*"
 	testTimeFormat
 }
@@ -48,16 +61,17 @@ function setTimeFormat()
 function testXLabel()
 {
 	declare -p TimeFormat 1>/dev/null 2>/dev/null || err "Cannot declare Xmax or Xmin before TimeFormat!"
-	date "+$TimeFormat" -d "$*" >/dev/null 2>/dev/null || err "Wrong format on Xmax or Xmin"
+	date "$(echo "+$TimeFormat" | tr -d "[]{}()")" -d "$(echo "$*" | tr -d "[]{}()")" >/dev/null 2>/dev/null || err "Wrong format on Xmax or Xmin"
 }
 
 #	Nastavi promennou Xmax
 #	-X
 function setXmax()
 {
-	declare -p Xmax 1>/dev/null 2>/dev/null && err "Xmax is already set"
+	declare -p Xmax 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Xmax is already set, using last option"
+	declare -p Xmax 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Xmax is already set"
 	[[ "$*" == "auto" || "$*" == "max" ]] || testXLabel "$*"
-	Xmax="$*"
+	Xmax=$(echo $* | tr -d "[]{}()")
 }
 
 
@@ -65,9 +79,10 @@ function setXmax()
 #	-x
 function setXmin()
 {
-	declare -p Xmin 1>/dev/null 2>/dev/null && err "Xmin is already set"
+	declare -p Xmin 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Xmin is already set, using last option"
+	declare -p Xmin 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Xmin is already set"
 	[[ "$*" == "auto" || "$*" == "min" ]] || testXLabel "$*"
-	Xmin="$*"
+	Xmin=$(echo $* | tr -d "[]{}()")
 	
 }
 
@@ -76,9 +91,15 @@ function setXmin()
 #	-Y
 function setYmax()
 {
-	declare -p Ymax 1>/dev/null 2>/dev/null && err "Ymax is already set"
-	[[ "$*" == "auto" || "$*" == "max" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Ymax. Supported params are: \"auto\", \"max\" or value"
-	Ymax="$*"
+	declare -p Ymax 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Ymax is already set, using last option"
+	declare -p Ymax 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Ymax is already set"
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		[[ "$*" == "auto" || "$*" == "max" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] && Ymax="$*" || warr "Invalid param for Ymax. Supported params are: \"auto\", \"max\" or value, using default or last option"
+	else
+		[[ "$*" == "auto" || "$*" == "max" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Ymax. Supported params are: \"auto\", \"max\" or value"
+		Ymax="$*"
+	fi
 }
 
 
@@ -86,9 +107,15 @@ function setYmax()
 #	-y
 function setYmin()
 {
-	declare -p Ymin 1>/dev/null 2>/dev/null && err "Ymin is already set"
-	[[ "$*" == "auto" || "$*" == "min" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Ymin. Supported params are: \"auto\", \"min\" or value"
-	Ymin="$*"
+	declare -p Ymin 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Ymin is already set, using last option"
+	declare -p Ymin 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Ymin is already set"
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		[[ "$*" == "auto" || "$*" == "min" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] && Ymin="$*" || warr "Invalid param for Ymin. Supported params are: \"auto\", \"min\" or value, using default or last one"
+	else
+		[[ "$*" == "auto" || "$*" == "min" || "$*" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Ymin. Supported params are: \"auto\", \"min\" or value"
+		Ymin="$*"
+	fi
 }
 
 
@@ -97,10 +124,17 @@ function setYmin()
 function setSpeed()
 {
 	
-	declare -p Time 1>/dev/null 2>/dev/null && declare -p FPS 1>/dev/null 2>/dev/null && err "Cannot use param Speed while params FPS and Time are already set"
-	declare -p speed 1>/dev/null 2>/dev/null && err "Speed is already set"
-	[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Speed. Supported is only a value"
-	speed="$*"
+	declare -p Time 1>/dev/null 2>/dev/null && declare -p FPS 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Cannot use param Speed while params FPS and Time are already set. Script will automaticaly ignore one of these options"
+	declare -p Time 1>/dev/null 2>/dev/null && declare -p FPS 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Cannot use param Speed while params FPS and Time are already set"
+	declare -p speed 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Speed is already set, using last option"
+	declare -p speed 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Speed is already set"
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] && speed="$*" || warr "Invalid param for Speed. Supported is only a value, using default or last option"
+	else
+		[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Speed. Supported is only a value"
+		speed="$*"
+	fi
 	[ "$DEBUG" -eq "1" ] && echo "Speed: $speed"
 }
 
@@ -109,27 +143,42 @@ function setSpeed()
 #	-T
 function setTime()
 {
-	declare -p speed 1>/dev/null 2>/dev/null && declare -p FPS 1>/dev/null 2>/dev/null && err "Cannot use param Time while params FPS and Speed are already set"
-	declare -p Time 1>/dev/null 2>/dev/null && err "Time is already set"
-	[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Time. Supported is only a value"
-	Time="$*"
+	declare -p speed 1>/dev/null 2>/dev/null && declare -p FPS 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Cannot use param Time while params FPS and Speed are already set. Script will automaticaly ignore one of these options"
+	declare -p speed 1>/dev/null 2>/dev/null && declare -p FPS 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Cannot use param Time while params FPS and Speed are already set"
+	declare -p Time 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Time is already set, using last option"
+	declare -p Time 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Time is already set"
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] && Time="$*" || warr "Invalid param for Time. Supported is only a value, using default or last option"
+	else
+		[[ "$*" =~ ^[0-9]+([.][0-9]+)?$ ]] || err "Invalid param for Time. Supported is only a value"
+		Time="$*"
+	fi
 }
 
 #	Nastavi promennou FPS
 #	-F
 function setFPS()
 {
-	declare -p FPS 1>/dev/null 2>/dev/null && err "FPS is already set"
-	declare -p speed 1>/dev/null 2>/dev/null && declare -p Time 1>/dev/null 2>/dev/null && err "Cannot use param FPS while params Time and Speed are already set"
-	[[ "$*" =~ ^[0-9]+$ ]] || err "Invalid param for FPS. Supported is only an integer"
-	FPS="$*"
+	declare -p speed 1>/dev/null 2>/dev/null && declare -p Time 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Cannot use param FPS while params Time and Speed are already set. Script will automaticaly ignore one of these options"
+	declare -p speed 1>/dev/null 2>/dev/null && declare -p Time 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Cannot use param FPS while params Time and Speed are already set"
+	declare -p FPS 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "FPS is already set. Using last option"
+	declare -p FPS 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "FPS is already set"
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		[[ "$*" =~ ^[0-9]+$ ]] && FPS="$*" || warr "Invalid param for FPS. Supported is only an integer, using default or last option"
+	else
+		[[ "$*" =~ ^[0-9]+$ ]] || err "Invalid param for FPS. Supported is only an integer"
+		FPS="$*"
+	fi
 }
 
 #	Funkce nastavi promennou legend
 #	-l
 function setLegend()
 {
-	declare -p Legend 1>/dev/null 2>/dev/null && err "Legend is already set"
+	declare -p Legend 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Legend is already set. Using the last option"
+	declare -p Legend 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Legend is already set"
 	Legend="$*"
 }
 
@@ -138,8 +187,13 @@ function setLegend()
 #	 -g
 function setGnuplotParams()
 {
-	echo "set $*" | gnuplot >/dev/null 2>/dev/null || err "Wrong Gnuplot Params"
-	gnuplotParams+=$(echo "set $*; ")
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		echo "set $*" | gnuplot >/dev/null 2>/dev/null && gnuplotParams+=$(echo "set $*; ") || warr "Wrong Gnuplot Params: $* will not be used"
+	else
+		echo "set $*" | gnuplot >/dev/null 2>/dev/null || err "Wrong Gnuplot Params: $*"
+		gnuplotParams+=$(echo "set $*; ")
+	fi
 }
 
 
@@ -152,21 +206,31 @@ function setIgnoreErrors()
 }
 
 
-#	Funkce nastavi promennou criticalValues
-#	-c
-function setCriticalValues()
-{
-	echo 
-}
+# #	Funkce nastavi promennou criticalValues
+# #	-c
+# function setCriticalValues()
+# {
+# 	echo 
+# }
+
 
 #	Funkce otestuje poradi sloupcu
 function testOrder()
 {
-	for i in {0..9}
-	do
- 		[ "$(tr -d -c "$i" <<< "$*" | wc -c)" == "1" ] || err "$* is not in right order"
- 	done
- 	order="$*"
+	if [ "$IGNOREERRORS" == "true" ]
+	then
+		for i in {0..9}
+		do
+	 		[ "$(tr -d -c "$i" <<< "$*" | wc -c)" != "1" ] && warr "$* is not in right order" && break
+	 		[ "$i" == "9" ] && order="$*"
+	 	done
+	else
+		for i in {0..9}
+		do
+	 		[ "$(tr -d -c "$i" <<< "$*" | wc -c)" == "1" ] || err "$* is not in right order"
+	 	done
+	 	order="$*"
+	 fi
 }
 
 #	Nastavi promennou EffectParams
@@ -174,9 +238,12 @@ function testOrder()
 #	-e
 function setEffectParams()
 {
+	grep "=" <<< "$*" >/dev/null 2>/dev/null || err "Wrong EffectParams"
+	[[ "$(echo "$*" | cut -d ":" -f1 | cut -d"=" -f1)" == "order" || "$(echo "$*" | cut -d ":" -f1 | cut -d"=" -f1)" == "multi" ]] || err "Wrong EffectParams"
+	[ "$(echo "$*" | cut -d ":" -f1 | cut -d"=" -f1)" == "order" ] && testOrder "$(echo "$*" | cut -d ":" -f1 | cut -d"=" -f2 )"
 	declare -p EffectParams 1>/dev/null 2>/dev/null && EffectParams="$EffectParams:$*"
 	declare -p EffectParams 1>/dev/null 2>/dev/null || EffectParams="$*"
-	[ "$(echo "$EffectParams" | cut -d ":" -f1 | cut -d"=" -f1)" == "order" ]  && testOrder "$(echo "$EffectParams" | cut -d ":" -f1 | cut -d"=" -f2 )"
+	
 	[ "$DEBUG" -eq "1" ] && echo "Efekty: $EffectParams" | tr ":" "\n"
 }
 
@@ -185,7 +252,8 @@ function setEffectParams()
 #	-n
 function setName()
 {
-	declare -p Name 1>/dev/null 2>/dev/null && err "Name is already set"
+	declare -p Name 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "true" ] && warr "Name is already set. Using the last option"
+	declare -p Name 1>/dev/null 2>/dev/null && [ "$IGNOREERRORS" == "false" ] && err "Name is already set"
 	Name="$*"
 }
 
@@ -318,7 +386,7 @@ function testFormat()
 {
 	for ((i=1;i<LINES;i++))
 	do
-		dataFromFile=$(head -"$i" sinus.data | tail -1 | awk '{$NF=""; print $0}' | tr -d "[]")
+		dataFromFile=$(head -"$i" <<< "$DATA" | tail -1 | awk '{$NF=""; print $0}' | tr -d "[]")
 		[ "$DEBUG" -eq "1" ] && echo "$dataFromFile"
 		[ "$DEBUG" -eq "1" ] && echo "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")")"
 		[ "$(date "+$TimeFormat" -d "$(echo "$dataFromFile" | tr -d -c "0123456789 /-:")" | tr -d "[]") " == "$dataFromFile" ] || err "Wrong format on line $i"
@@ -371,8 +439,8 @@ function setDefaultVar()
 	declare -p TimeFormat 1>/dev/null 2>/dev/null || TimeFormat="%Y-%m-%d %H:%M:%S"
 	declare -p Ymax 1>/dev/null 2>/dev/null || Ymax="auto"
 	declare -p Ymin 1>/dev/null 2>/dev/null || Ymin="auto"
-	declare -p Ymax 1>/dev/null 2>/dev/null || Xmax="max"
-	declare -p Ymin 1>/dev/null 2>/dev/null || Xmin="min"
+	# declare -p Xmax 1>/dev/null 2>/dev/null || Xmax="max"
+	# declare -p Xmin 1>/dev/null 2>/dev/null || Xmin="min"
 	declare -p Name 1>/dev/null 2>/dev/null || Name=$(cut -d"/" -f2- <<< "$0")
 	declare -p Legend 1>/dev/null 2>/dev/null || Legend=""
 }
@@ -411,7 +479,7 @@ function setOrder()
 {
 	for i in {0..9}
 	do
-		k="$(cut -c"$((i+1))" <<< "$order")"
+		k="$(cut -c"$((i+1))" <<< "$order")" 
 		array2["$i"]="${array["$k"]}"
 	done
 	necoCoNicNeprepise2=$(printf "%s\n" "${array2[@]}")
@@ -421,13 +489,15 @@ function setOrder()
 function generategraph()
 {
 	
-	XRANGE=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p;$p' | paste -d: -s)
-	[ "$Xmin" == "min" ] && Xmin=$(cut -d":" -f1 <<< $XRANGE)
-	[ "$Xmax" == "max" ] && Xmax=$(cut -d":" -f2 <<< $XRANGE)
-	[ "$Xmin" == "auto" ] && Xmin="*"
-	[ "$Xmax" == "auto" ] && Xmax="*"
+	# [ "$Xmin" == "min" ] && Xmin=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '1p')
+	# [ "$Xmax" == "max" ] && Xmax=$(awk '{$NF=""; print $0}' <<< "$DATA" | sed -n '$p')
+	# [ "$Xmin" == "auto" ] && Xmin="*"
+	# [ "$Xmax" == "auto" ] && Xmax="*"
+	# echo "$Xmin $Xmax"
 
 	LINES=$(wc -l <<< "$DATA")
+
+	[ "$LINES" -lt "10" ] && err "Not enought data, need at least 10 lines"
 
 	testFormat
 	
@@ -477,7 +547,7 @@ function generategraph()
 		set output "$(printf "$FMT" "$counter")"
 		set timefmt "$TimeFormat"
 		set xdata time
-		set xrange [$Xmin:$Xmax]
+		set autoscale xfix
 		set yrange [$Ymin:$Ymax]
 		set title "$Legend"
 		plot '-' using 1:$sloupce with lines t ''
