@@ -1,0 +1,90 @@
+.\" DO NOT MODIFY THIS FILE! 
+.TH genanim.sh "1" "May 2017"  "User Commands"
+.SH NAME
+genanim.sh \- generate animation from given data files
+.SH SYNOPSIS
+.B ./genanim.sh
+[\fI\,-OPTIONS\/\fR] \fI\,FILE|URL\/\fR...
+.SH DESCRIPTION
+.\" Add any additional description here
+.PP
+Read files from params or download then from the internet.
+.PP
+Creates animation from them. The frames will be distributed into 10 fields which will be printed in random order.
+.PP
+The animation will be save in directory given by parameter -n (Name) or in directory named as the script. If the directory already exist the script will create new one with _max after name.
+.PP
+The params of script are process in simply order. There are no priority in them. If you want to ignore errors you need use -E first.
+.PP
+.SH Optional arguments:
+.PP
+in bracket is directive for Configuration file
+.TP
+\fB\-t (TimeFormat)\fR
+format of inserted values default: "%Y-%m-%d %H:%M:%S". TimeFormat has to be in format: [YY]YY[-mm[-dd[(T| )HH[:MM[:SS]]]]] instead of "-" and "." can be different symbol. 
+.TP
+\fB\-y (Ymin)\fR
+set up Min on y range, can be a value, min or auto(default)
+.TP
+\fB\-Y (Ymax)\fR
+set up Max on y range, can be a value, max or auto(default)
+.TP
+\fB\-S (Speed)\fR
+set up speed of animation default: "1"
+.TP
+\fB\-T (Time)\fR
+set up duration of animation
+.TP
+\fB\-F (FPS)\fR
+set up frames per second of animation default "25"
+.TP
+\fB\-l (Legend)\fR
+set up Legend of animation
+.TP
+\fB\-G (GnuplotParams)\fR
+set up Params which will be send directly into gnuplot
+.TP
+\fB\-e (EffectParams)\fR
+effect params of animation. You can specify order in which the fields will be printed using "order=0123456789"
+.TP
+\fB\-f (not available)\fR
+script reads arguments from given configuration file
+.TP
+\fB\-n (Name)\fR
+name of folder where animation will be created default: name of script
+.TP
+\fB\-E (IgnoreErrors [true|false])\fR
+Script will try to ignore some errors default: false
+.TP
+\fB\-d (not available)\fR
+Debug mode, usefull when searching for bugs.
+.TP
+\fB\-o (not available)\fR
+Turn off tests of TimeFormat and will not compare TimeFormat with data from input. Script will run faster. DO NOT USE WHEN YOUR TIMEFORMAT DOES NOT MATCH YOUR INPUT FILE!!!
+.PP
+.SH Configuration file:
+.PP
+Symbol # mean comment from this sign until next line
+.PP
+Empty lines or with white space are ignored
+.PP
+Only one directive can be on single line
+.PP
+Directive is only one word
+.PP
+The directive ignore Upper/lower case (case in-sensitive)
+.PP
+Directive has only one value 
+.PP
+Directive can be stated only once
+.PP
+The directive and the value can be separated by space or tab(or combination of these two)
+
+
+.PP
+.SH Return value:
+.PP
+Script has returning values: "0" for succes and "1" for fail.
+.SH AUTHOR
+Written by Jan Michal.
+

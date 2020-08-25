@@ -1,0 +1,41 @@
+.\" DO NOT MODIFY THIS FILE! 
+.TH genanim.sh "1" "May 2017"  "Programatorska dokumentace"
+.SH NAME
+genanim.sh \- vygeneruje animaci ze zadaných dat
+.PP
+Program je logicky rozčleněn na několik částí. Na začátku se nachází konstanty potřebné pro běh programu. Po nich následují deklarované funkce. Úplně na konci se zavolá funkce main, odkud celý program startuje.
+.SH POPIS ALGORITMU
+.\" Add any additional description here
+
+.PP
+Nejprve se nastavi trap na funkci finish, která před tím než se ukončí skript uklidí vše nepotřebné co po sobě program zanechal.
+.PP
+Poté se skočí do funkce loadParam, ta postupně zpracuje všechny přepínače voláním jím příslušných funkcí, které nejprve otestují správnost a až pak nadeklarují příslušné proměnné. Veškeré parametry se zpracovávají postupně a nemají prioritu a to včetně konfiguračního souboru. 
+.PP
+Jako další se zavolá funkce setDefaultParams. V ní se nastaví parametry, které uživatel nezadal na jejich defaultní hodnoty.
+.PP
+Skript se dále pokusí vytvořit složku, do které umístí výslednou animaci, pokud se mu to nepovede zavolá se funkce createDirectory a max_item ty vytvoří příslušnou složku.
+.PP
+Naposled se zavolá loadFile. Tady se nejdříve otestují a následně zpracují vstupní data, jak ze souborů, tak z webu. Data se potom rozdělí do 10 polí, které se buď náhodně zamíchají nebo si uživatel zadal jejich pevně dané pořadí. Jako další se spočítají hodnoty Ymax a Ymin, které budou určovat výslednou animaci.
+.PP
+Funkce setdefaultFpsTimeSpeed má za úkol správně spočítat a rozhodnout o tvorbě potřebného množství obrázků pro animaci. Dále se pomocí programu Gnuplot vygenerují obrázky ve formátu png. Ty se následně spojí do animace pomocí programu ffmpeg, ten výslednou animaci uloží do předpřipravené složky.
+
+.SH POPIS FUNKCI
+.PP
+Zde jsou rozepsány některé složitější funkce, jednoduché funkce jsou popsány komentáři rovnou v kódu.
+.PP
+\fB\ loadFile\fR
+.PP
+Funkce nejdříve vytvoří dočasný adresář, pro ukládání souborů, které nebudou potřeba po skončení skriptu. Poté si do proměnné "DATA" uloží vše co uživatel zadal jako soubory nebo obsah zadaných webových stránek. Na konec zavolá funkci "generategraph".
+.PP
+\fB\ testFormat\fR
+.PP
+Funkce postupně projede všechny řádky vstupních dat, u kterých si uloží format do proměnné "dataFromFile". Z "dataFromFile" zkopíruje, upraví a uloží do proměnné "testDataFromFile", tak aby jí přijal přikaz date. Ten dostane pomocí přepínače -d proměnou "testDataFromFile", kterou transformuje do podoby TimeFormatu a výsledný výstup porovná s formátem v příslušném řádku.
+.PP
+\fB\ generategraph\fR
+.PP
+Funkce spočte řádky v souboru, kvůli nastavení Speed,Time a FPS. Zavolá funkci testFormat, která zkontroluje všechny řádky na správný formát. Roseká vstupní data do 10 polí, které buď náhodně zamíchá (Funkce shuffle) nebo seřadí dle přání uživatele. Následně nastaví hodnoty Yrange pro gnuplot. Nastaví proměnné Speed,Time a FPS zavoláním funkce "setdefaultFpsTimeSpeed". Pomocí gnuplotu vytvoří obrázky a uloží do dočasné složky. Z nich nakonec vytvoří program ffmpeg animaci spojením dohromady.
+
+.SH AUTHOR
+Written by Jan Michal.
+
